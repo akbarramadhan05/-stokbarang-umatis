@@ -1,41 +1,69 @@
 @import "tailwindcss";
 
 @theme {
-  --color-forest-dark: #022c22;
-  --color-forest-medium: #064e3b;
-  --color-forest-light: #0f766e;
-  --color-forest-accent: #10b981;
-  --color-gold-accent: #d4af37;
-  --color-gold-glow: #fbbf24;
-  --color-glass-bg: rgba(6, 78, 59, 0.15);
-  --color-glass-border: rgba(255, 255, 255, 0.08);
+  /* Override default forest variables to light theme */
+  --color-forest-dark: #faf8f5;
+  --color-forest-medium: #f1ece4;
+  --color-forest-light: #e5ddd3;
+  --color-forest-accent: #b45309;
+  
+  --color-gold-accent: #b45309;
+  --color-gold-glow: #f59e0b;
+  --color-glass-bg: rgba(255, 255, 255, 0.7);
+  --color-glass-border: rgba(0, 0, 0, 0.08);
   --font-sans: var(--font-plus-jakarta-sans), var(--font-geist-sans), ui-sans-serif, system-ui;
+
+  /* Map default text/border colors (slate) to dark/muted tones to look good on light bg */
+  --color-slate-50: #0f172a;
+  --color-slate-100: #1e293b;
+  --color-slate-200: #334155;
+  --color-slate-300: #475569;
+  --color-slate-400: #64748b;
+  --color-slate-500: #64748b;
+  --color-slate-600: #94a3b8;
+  --color-slate-700: #cbd5e1;
+  --color-slate-800: #e5ddd3; /* light divider line */
+  --color-slate-900: #f5f0e6; /* warm beige select options bg */
+  --color-slate-950: #ffffff; /* dark panel containers become white */
+
+  /* Map default emerald/green to amber/gold accents (cerah & non-hijau) */
+  --color-emerald-50: #fffbeb;
+  --color-emerald-100: #fef3c7;
+  --color-emerald-200: #fde68a;
+  --color-emerald-300: #fcd34d;
+  --color-emerald-400: #d97706; /* action texts */
+  --color-emerald-500: #b45309; /* main buttons */
+  --color-emerald-600: #92400e; /* hover states */
+  --color-emerald-700: #78350f;
+  --color-emerald-800: #451a03;
+  --color-emerald-900: #78350f;
+  --color-emerald-950: #fffbeb;
 }
 
 :root {
-  --background: #022c22;
-  --foreground: #f8fafc;
+  --background: #faf8f5;
+  --foreground: #1e293b;
 }
 
 body {
-  background-color: #022c22;
+  background-color: #faf8f5;
   background-image: 
-    radial-gradient(at 0% 0%, rgba(6, 78, 59, 0.6) 0px, transparent 50%),
-    radial-gradient(at 100% 0%, rgba(15, 118, 110, 0.4) 0px, transparent 50%),
-    radial-gradient(at 50% 100%, rgba(2, 44, 34, 0.9) 0px, transparent 100%),
-    radial-gradient(at 100% 100%, rgba(11, 19, 41, 0.8) 0px, transparent 50%);
+    radial-gradient(at 0% 0%, rgba(229, 221, 211, 0.4) 0px, transparent 50%),
+    radial-gradient(at 100% 0%, rgba(245, 158, 11, 0.08) 0px, transparent 50%),
+    radial-gradient(at 50% 100%, rgba(250, 248, 245, 0.9) 0px, transparent 100%),
+    radial-gradient(at 100% 100%, rgba(180, 83, 9, 0.05) 0px, transparent 50%);
   background-attachment: fixed;
-  color: #f8fafc;
+  color: #1e293b;
   min-height: 100vh;
 }
 
-/* Glassmorphism custom classes */
+/* Glassmorphism custom classes - adjusted for light/bright theme */
 .glass-panel {
-  background: rgba(6, 78, 59, 0.15);
+  background: rgba(255, 255, 255, 0.7);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.04);
 }
 
 .glass-panel-hover {
@@ -43,34 +71,34 @@ body {
 }
 
 .glass-panel-hover:hover {
-  background: rgba(6, 78, 59, 0.22);
-  border-color: rgba(16, 185, 129, 0.25);
-  box-shadow: 0 12px 40px 0 rgba(16, 185, 129, 0.15);
+  background: rgba(255, 255, 255, 0.85);
+  border-color: rgba(217, 119, 6, 0.25);
+  box-shadow: 0 12px 40px 0 rgba(217, 119, 6, 0.1);
   transform: translateY(-2px);
 }
 
 .glass-input {
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(0, 0, 0, 0.12);
   border-radius: 0.75rem;
   padding: 0.75rem 1rem;
-  color: #f8fafc;
+  color: #1e293b;
   outline: none;
   transition: all 0.20s ease-in-out;
 }
 
 .glass-input:focus {
-  background: rgba(255, 255, 255, 0.07);
-  border-color: rgba(16, 185, 129, 0.45);
-  box-shadow: 0 0 15px rgba(16, 185, 129, 0.15);
+  background: #ffffff;
+  border-color: rgba(217, 119, 6, 0.45);
+  box-shadow: 0 0 15px rgba(217, 119, 6, 0.15);
 }
 
 .gold-glow {
-  text-shadow: 0 0 10px rgba(212, 175, 55, 0.4);
+  text-shadow: 0 0 10px rgba(180, 83, 9, 0.2);
 }
 
 .emerald-glow {
-  box-shadow: 0 0 15px rgba(16, 185, 129, 0.3);
+  box-shadow: 0 0 15px rgba(217, 119, 6, 0.2);
 }
 
 /* Hide scrollbars but keep functionality */

@@ -2,8 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { supabase, isSupabaseConfigured } from '@/lib/supabase';
-import { getMockProfiles } from '@/lib/mock-db';
+import { loginUser } from '@/lib/api-client';
 import { Lock, Mail, ChevronRight, AlertCircle, GlassWater } from 'lucide-react';
 import MockWarning from '@/components/mock-warning';
 
@@ -27,77 +26,23 @@ export default function Login() {
     setLoading(true);
 
     try {
-      if (isSupabaseConfigured) {
-        // Supabase Auth
-        const { data, error: authError } = await supabase.auth.signInWithPassword({
-          email,
-          password,
-        });
+      const user = await loginUser(email, password);
 
-        if (authError) throw authError;
+      // Save login info to session
+      sessionStorage.setItem(
+        'umatis_user',
+        JSON.stringify({
+          id: user.id,
+          email: user.email,
+          full_name: user.full_name,
+          role: user.role,
+        })
+      );
 
-        if (data.user) {
-          // Fetch profile role
-          const { data: profile, error: profileError } = await supabase
-            .from('profiles')
-            .select('role, full_name')
-            .eq('id', data.user.id)
-            .single();
-
-          if (profileError) {
-            throw new Error('Gagal mendapatkan profil pengguna.');
-          }
-
-          // Save login info to session
-          sessionStorage.setItem(
-            'umatis_user',
-            JSON.stringify({
-              id: data.user.id,
-              email: data.user.email,
-              full_name: profile.full_name,
-              role: profile.role,
-            })
-          );
-
-          // Redirect
-          redirectUser(profile.role);
-        }
-      } else {
-        // Mock Login
-        const profiles = getMockProfiles();
-        // Check email prefix to identify role
-        let targetRole: 'admin' | 'owner' | 'barista' | null = null;
-        let matchedProfile = null;
-
-        if (email.toLowerCase().includes('admin')) {
-          targetRole = 'admin';
-          matchedProfile = profiles.find(p => p.role === 'admin');
-        } else if (email.toLowerCase().includes('owner')) {
-          targetRole = 'owner';
-          matchedProfile = profiles.find(p => p.role === 'owner');
-        } else if (email.toLowerCase().includes('barista')) {
-          targetRole = 'barista';
-          matchedProfile = profiles.find(p => p.role === 'barista');
-        }
-
-        if (targetRole && matchedProfile) {
-          // Success
-          sessionStorage.setItem(
-            'umatis_user',
-            JSON.stringify({
-              id: matchedProfile.id,
-              email,
-              full_name: matchedProfile.full_name,
-              role: matchedProfile.role,
-            })
-          );
-          setTimeout(() => {
-            redirectUser(targetRole);
-          }, 600);
-        } else {
-          throw new Error('Email tidak dikenali untuk demo. Gunakan email bantuan di bawah.');
-        }
-      }
+      // Redirect based on role
+      setTimeout(() => {
+        redirectUser(user.role);
+      }, 600);
     } catch (err: any) {
       setError(err.message || 'Login gagal. Periksa kembali email dan password Anda.');
       setLoading(false);
@@ -126,8 +71,8 @@ export default function Login() {
         <div className="w-full max-w-md">
           {/* Logo Brand */}
           <div className="text-center mb-8 flex flex-col items-center">
-            <div className="w-16 h-16 rounded-full glass-panel flex items-center justify-center mb-3 border border-emerald-500/25 shadow-emerald-950/40 shadow-lg">
-              <GlassWater className="w-8 h-8 text-emerald-400 animate-pulse" />
+            <div className="w-24 h-24 rounded-2xl bg-white flex items-center justify-center mb-3 border border-emerald-500/25 shadow-emerald-950/40 shadow-lg p-2.5 overflow-hidden">
+              <img src="/logo.png" alt="Umatis Logo" className="w-full h-full object-contain" />
             </div>
             <h1 className="text-3xl font-extrabold tracking-widest text-slate-100 uppercase">
               Umatis

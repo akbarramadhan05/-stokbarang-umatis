@@ -2,8 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { isSupabaseConfigured, supabase } from '@/lib/supabase';
-import * as mockDb from '@/lib/mock-db';
+import * as api from '@/lib/api-client';
 import { Item, StockOpname } from '@/types';
 import { 
   ClipboardCheck, Eye, Plus, ArrowRight, ArrowLeft, RefreshCw, 
@@ -54,33 +53,12 @@ export default function BaristaDashboard() {
   const loadData = async () => {
     setLoading(true);
     try {
-      if (isSupabaseConfigured) {
-        const { data: iData } = await supabase.from('items').select('*');
-        const { data: sData } = await supabase.from('suppliers').select('id, name');
-        const { data: oData } = await supabase.from('stock_opname').select('*').order('created_at', { ascending: false });
-        const { data: pData } = await supabase.from('profiles').select('id, full_name');
-
-        const enrichedItems = ((iData || []) as any[]).map((item: any) => ({
-          ...item,
-          supplier_name: ((sData || []) as any[]).find((s: any) => s.id === item.supplier_id)?.name || 'Tanpa Supplier'
-        }));
-        setItems(enrichedItems);
-
-        const enrichedOps = ((oData || []) as any[]).map((op: any) => {
-          const itm = ((iData || []) as any[]).find((i: any) => i.id === op.item_id);
-          return {
-            ...op,
-            item_name: itm?.name || 'Barang Dihapus',
-            category: itm?.category || '-',
-            unit: itm?.unit || '',
-            barista_name: ((pData || []) as any[]).find((p: any) => p.id === op.barista_id)?.full_name || 'Barista'
-          };
-        });
-        setOpnameHistory(enrichedOps);
-      } else {
-        setItems(mockDb.getMockItems());
-        setOpnameHistory(mockDb.getMockOpnames());
-      }
+      const [itemsData, opData] = await Promise.all([
+        api.getItems(),
+        api.getOpnames(),
+      ]);
+      setItems(itemsData);
+      setOpnameHistory(opData);
     } catch (err) {
       console.error(err);
     } finally {
@@ -108,46 +86,15 @@ export default function BaristaDashboard() {
     try {
       const physical = Number(physicalStock);
       const system = Number(selectedItem.current_stock);
-      const discrepancy = physical - system;
 
-      if (isSupabaseConfigured) {
-        // Post to Supabase Stock Opname Table
-        const payload = {
-          opname_date: new Date().toISOString().split('T')[0],
-          item_id: selectedItem.id,
-          system_stock: system,
-          physical_stock: physical,
-          discrepancy,
-          status: 'submitted', // submitted role (awaits admin verification or autosync if trigger set)
-          barista_id: currentUser.id,
-          notes: opnameNotes,
-        };
-        
-        await supabase.from('stock_opname').insert(payload);
-
-        // Also insert auto-transaction to balance stocks if we want live update
-        // We'll simulate this so the barista sees live updates
-        if (discrepancy !== 0) {
-          await supabase.from('transactions').insert({
-            item_id: selectedItem.id,
-            type: discrepancy > 0 ? 'masuk' : 'terpakai',
-            quantity: Math.abs(discrepancy),
-            actor_id: currentUser.id,
-            notes: `Auto adjustment dari Opname Barista. ${opnameNotes}`,
-          });
-        }
-      } else {
-        // Save in LocalStorage mock DB
-        mockDb.addStockOpname({
-          opname_date: new Date().toISOString().split('T')[0],
-          item_id: selectedItem.id,
-          system_stock: system,
-          physical_stock: physical,
-          status: 'verified', // in mock mode, auto verify to make testing intuitive
-          barista_id: currentUser.id,
-          notes: opnameNotes,
-        });
-      }
+      await api.addOpname({
+        item_id: selectedItem.id,
+        system_stock: system,
+        physical_stock: physical,
+        status: 'verified',
+        barista_id: currentUser.id,
+        notes: opnameNotes,
+      });
 
       setWizardStep(3);
       loadData();
@@ -176,8 +123,8 @@ export default function BaristaDashboard() {
       {/* Header - Compact for Mobile */}
       <header className="glass-panel sticky top-0 z-40 border-b border-white/5 py-3.5 px-4 flex justify-between items-center shadow-md shadow-black/25">
         <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-lg bg-emerald-600/20 border border-emerald-500/30 flex items-center justify-center">
-            <ClipboardList className="w-4 h-4 text-emerald-400" />
+          <div className="w-8 h-8 rounded-lg bg-white flex items-center justify-center overflow-hidden p-0.5 shadow-md">
+            <img src="/logo.png" alt="Umatis Logo" className="w-full h-full object-contain" />
           </div>
           <div>
             <h1 className="text-sm font-black tracking-widest text-slate-200 uppercase">Umatis Bar</h1>

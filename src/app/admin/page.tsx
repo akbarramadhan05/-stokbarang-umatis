@@ -2,8 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { isSupabaseConfigured, supabase } from '@/lib/supabase';
-import * as mockDb from '@/lib/mock-db';
+import * as api from '@/lib/api-client';
 import { Item, Supplier, Transaction, Profile, UserRole } from '@/types';
 import { 
   Package, Users, Truck, ArrowUpDown, Plus, Search, Edit2, Trash2, 
@@ -11,6 +10,16 @@ import {
   LogOut, ClipboardList, ShoppingCart, UserCheck, MapPin, Phone, Mail
 } from 'lucide-react';
 import MockWarning from '@/components/mock-warning';
+
+const getWhatsAppUrl = (phone: string, supplierName: string) => {
+  if (!phone) return '#';
+  let cleaned = phone.replace(/\D/g, '');
+  if (cleaned.startsWith('0')) {
+    cleaned = '62' + cleaned.slice(1);
+  }
+  const text = encodeURIComponent(`Halo ${supplierName}, kami ingin memesan stok bahan untuk Umatis Resto & Venue.`);
+  return `https://wa.me/${cleaned}?text=${text}`;
+};
 
 export default function AdminDashboard() {
   const router = useRouter();
@@ -67,42 +76,16 @@ export default function AdminDashboard() {
   const loadData = async () => {
     setLoading(true);
     try {
-      if (isSupabaseConfigured) {
-        // Fetch from Supabase
-        const { data: pData } = await supabase.from('profiles').select('*');
-        const { data: sData } = await supabase.from('suppliers').select('*');
-        const { data: iData } = await supabase.from('items').select('*');
-        const { data: tData } = await supabase.from('transactions').select('*').order('created_at', { ascending: false });
-
-        setProfiles((pData || []) as any[]);
-        setSuppliers((sData || []) as any[]);
-        
-        // Enrich item lists with supplier names
-        const enrichedItems = ((iData || []) as any[]).map((item: any) => ({
-          ...item,
-          supplier_name: ((sData || []) as any[]).find((s: any) => s.id === item.supplier_id)?.name || 'Tanpa Supplier'
-        }));
-        setItems(enrichedItems);
-
-        // Enrich transactions
-        const enrichedTxs = ((tData || []) as any[]).map((tx: any) => {
-          const itm = ((iData || []) as any[]).find((i: any) => i.id === tx.item_id);
-          return {
-            ...tx,
-            item_name: itm?.name || 'Barang Dihapus',
-            category: itm?.category || '-',
-            unit: itm?.unit || '',
-            actor_name: ((pData || []) as any[]).find((p: any) => p.id === tx.actor_id)?.full_name || 'Staf'
-          };
-        });
-        setTransactions(enrichedTxs);
-      } else {
-        // Fetch from localStorage Mock DB
-        setProfiles(mockDb.getMockProfiles());
-        setSuppliers(mockDb.getMockSuppliers());
-        setItems(mockDb.getMockItems());
-        setTransactions(mockDb.getMockTransactions());
-      }
+      const [profilesData, suppliersData, itemsData, txData] = await Promise.all([
+        api.getProfiles(),
+        api.getSuppliers(),
+        api.getItems(),
+        api.getTransactions(),
+      ]);
+      setProfiles(profilesData);
+      setSuppliers(suppliersData);
+      setItems(itemsData);
+      setTransactions(txData);
     } catch (err) {
       console.error("Error loading data", err);
     } finally {
@@ -118,24 +101,15 @@ export default function AdminDashboard() {
     if (!currentItem?.name || !currentItem?.category || !currentItem?.unit) return;
 
     try {
-      if (isSupabaseConfigured) {
-        const payload = {
-          name: currentItem.name,
-          category: currentItem.category,
-          unit: currentItem.unit,
-          minimum_stock: Number(currentItem.minimum_stock || 0),
-          supplier_id: currentItem.supplier_id || null,
-          current_stock: Number(currentItem.current_stock || 0),
-        };
-
-        if (currentItem.id) {
-          await supabase.from('items').update(payload).eq('id', currentItem.id);
-        } else {
-          await supabase.from('items').insert(payload);
-        }
-      } else {
-        mockDb.saveItem(currentItem);
-      }
+      await api.saveItem({
+        id: currentItem.id || undefined,
+        name: currentItem.name,
+        category: currentItem.category,
+        unit: currentItem.unit,
+        minimum_stock: Number(currentItem.minimum_stock || 0),
+        supplier_id: currentItem.supplier_id || null,
+        current_stock: Number(currentItem.current_stock || 0),
+      });
       setItemModalOpen(false);
       setCurrentItem(null);
       loadData();
@@ -148,11 +122,7 @@ export default function AdminDashboard() {
   const handleDeleteItem = async (id: string) => {
     if (!confirm('Apakah Anda yakin ingin menghapus barang ini?')) return;
     try {
-      if (isSupabaseConfigured) {
-        await supabase.from('items').delete().eq('id', id);
-      } else {
-        mockDb.deleteItem(id);
-      }
+      await api.deleteItem(id);
       loadData();
     } catch (err) {
       console.error(err);
@@ -165,22 +135,13 @@ export default function AdminDashboard() {
     if (!currentSupplier?.name) return;
 
     try {
-      if (isSupabaseConfigured) {
-        const payload = {
-          name: currentSupplier.name,
-          phone: currentSupplier.phone || '',
-          email: currentSupplier.email || '',
-          address: currentSupplier.address || '',
-        };
-
-        if (currentSupplier.id) {
-          await supabase.from('suppliers').update(payload).eq('id', currentSupplier.id);
-        } else {
-          await supabase.from('suppliers').insert(payload);
-        }
-      } else {
-        mockDb.saveSupplier(currentSupplier);
-      }
+      await api.saveSupplier({
+        id: currentSupplier.id || undefined,
+        name: currentSupplier.name,
+        phone: currentSupplier.phone || '',
+        email: currentSupplier.email || '',
+        address: currentSupplier.address || '',
+      });
       setSupplierModalOpen(false);
       setCurrentSupplier(null);
       loadData();
@@ -193,11 +154,7 @@ export default function AdminDashboard() {
   const handleDeleteSupplier = async (id: string) => {
     if (!confirm('Hapus supplier ini? Peringatan: Barang terkait akan kehilangan referensi supplier.')) return;
     try {
-      if (isSupabaseConfigured) {
-        await supabase.from('suppliers').delete().eq('id', id);
-      } else {
-        mockDb.deleteSupplier(id);
-      }
+      await api.deleteSupplier(id);
       loadData();
     } catch (err) {
       console.error(err);
@@ -210,28 +167,13 @@ export default function AdminDashboard() {
     if (!txItemId || !txQty) return;
 
     try {
-      const quantity = Number(txQty);
-      if (isSupabaseConfigured) {
-        const payload = {
-          item_id: txItemId,
-          type: txType,
-          quantity,
-          actor_id: currentUser.id,
-          notes: txNotes,
-        };
-        await supabase.from('transactions').insert(payload);
-
-        // Update item stock locally or refetch
-        // Supabase trigger automatically does this in backend, so refetching is fine.
-      } else {
-        mockDb.addTransaction({
-          item_id: txItemId,
-          type: txType,
-          quantity,
-          actor_id: currentUser.id,
-          notes: txNotes,
-        });
-      }
+      await api.addTransaction({
+        item_id: txItemId,
+        type: txType,
+        quantity: Number(txQty),
+        actor_id: currentUser.id,
+        notes: txNotes,
+      });
       // Reset form
       setTxItemId('');
       setTxQty('');
@@ -274,8 +216,8 @@ export default function AdminDashboard() {
       {/* Header */}
       <header className="glass-panel sticky top-0 z-40 border-b border-white/5 py-4 px-6 flex justify-between items-center shadow-lg shadow-black/30">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-emerald-600/20 border border-emerald-500/30 flex items-center justify-center">
-            <ClipboardList className="w-5 h-5 text-emerald-400" />
+          <div className="w-10 h-10 rounded-xl bg-white flex items-center justify-center overflow-hidden p-1 shadow-md">
+            <img src="/logo.png" alt="Umatis Logo" className="w-full h-full object-contain" />
           </div>
           <div>
             <h1 className="text-xl font-bold tracking-wider text-slate-200">UMATIS RESTO</h1>
@@ -565,7 +507,26 @@ export default function AdminDashboard() {
                       suppliers.filter(s => s.name.toLowerCase().includes(searchQuery.toLowerCase())).map(supplier => (
                         <tr key={supplier.id} className="hover:bg-white/2 transition-colors">
                           <td className="py-4 pl-3 font-semibold text-slate-200">{supplier.name}</td>
-                          <td className="py-4 text-slate-300">{supplier.phone || '-'}</td>
+                          <td className="py-4 text-slate-300">
+                            {supplier.phone ? (
+                              <div className="flex items-center gap-2">
+                                <span>{supplier.phone}</span>
+                                <a 
+                                  href={getWhatsAppUrl(supplier.phone, supplier.name)}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="inline-flex items-center justify-center w-6 h-6 rounded bg-[#25D366] hover:bg-[#20ba5a] text-white transition-colors"
+                                  title="Hubungi via WhatsApp"
+                                >
+                                  <svg className="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24">
+                                    <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946C.06 5.348 5.397.01 12.008.01c3.202.001 6.212 1.246 8.477 3.517 2.266 2.27 3.507 5.28 3.505 8.484-.004 6.657-5.34 11.997-11.953 11.997-2.005-.001-3.973-.502-5.724-1.455L0 24zm6.09-3.985l.41.243c1.58.939 3.502 1.435 5.463 1.436 5.864 0 10.635-4.746 10.638-10.58.002-2.83-1.096-5.49-3.09-7.487-1.993-1.997-4.65-3.097-7.478-3.097-5.867 0-10.637 4.747-10.64 10.584-.001 1.942.508 3.841 1.472 5.51l.269.467-1.01 3.693 3.796-.99zM17.15 15.64c-.3-.15-1.777-.872-2.031-.967-.255-.095-.441-.142-.627.142-.186.284-.72.903-.882 1.093-.162.19-.325.213-.625.063-.3-.15-1.267-.467-2.414-1.488-.893-.794-1.496-1.777-1.671-2.078-.176-.3-.019-.462.13-.611.135-.133.3-.349.45-.523.15-.174.2-.299.3-.499.1-.2.05-.375-.025-.524-.075-.15-.625-1.493-.856-2.057-.225-.548-.473-.474-.627-.482-.15-.008-.325-.01-.5-.01s-.458.067-.698.327c-.24.26-1.066 1.037-1.066 2.53 0 1.493 1.092 2.932 1.241 3.13.15.198 2.15 3.266 5.208 4.582.727.313 1.296.5 1.738.64.73.232 1.396.199 1.921.121.585-.087 1.778-.723 2.031-1.386.254-.664.254-1.233.178-1.386-.076-.153-.277-.247-.577-.397z"/>
+                                  </svg>
+                                </a>
+                              </div>
+                            ) : (
+                              '-'
+                            )}
+                          </td>
                           <td className="py-4 text-slate-300">{supplier.email || '-'}</td>
                           <td className="py-4 text-slate-400 max-w-xs truncate">{supplier.address || '-'}</td>
                           <td className="py-4 pr-3 text-right">
@@ -695,7 +656,7 @@ export default function AdminDashboard() {
             <div>
               <div className="mb-4">
                 <h3 className="text-sm font-bold uppercase tracking-wider text-slate-400">Monitoring Hak Akses</h3>
-                <p className="text-xs text-slate-500 mt-1">Mengelola dan mendaftarkan akun di Supabase Auth / Local Profile database.</p>
+                <p className="text-xs text-slate-500 mt-1">Mengelola dan mendaftarkan akun di MySQL database profil.</p>
               </div>
 
               {/* Users Table */}

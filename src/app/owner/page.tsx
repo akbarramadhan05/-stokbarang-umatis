@@ -2,15 +2,27 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { isSupabaseConfigured, supabase } from '@/lib/supabase';
-import * as mockDb from '@/lib/mock-db';
-import { Item, Transaction, StockOpname } from '@/types';
+import * as api from '@/lib/api-client';
+import { Item, Transaction, StockOpname, Supplier } from '@/types';
 import { 
   TrendingUp, AlertTriangle, Download, Package, Calendar, 
   RefreshCw, LogOut, CheckCircle, BarChart2, Eye, ShieldAlert,
   ArrowUpRight, ArrowDownRight
 } from 'lucide-react';
 import MockWarning from '@/components/mock-warning';
+
+const getWhatsAppUrl = (phone: string, supplierName: string, itemName?: string) => {
+  if (!phone) return '#';
+  let cleaned = phone.replace(/\D/g, '');
+  if (cleaned.startsWith('0')) {
+    cleaned = '62' + cleaned.slice(1);
+  }
+  const message = itemName 
+    ? `Halo ${supplierName}, kami ingin memesan kembali stok ${itemName} yang sudah di bawah batas minimum untuk Umatis Resto & Venue.`
+    : `Halo ${supplierName}, kami ingin memesan stok bahan untuk Umatis Resto & Venue.`;
+  const text = encodeURIComponent(message);
+  return `https://wa.me/${cleaned}?text=${text}`;
+};
 
 export default function OwnerDashboard() {
   const router = useRouter();
@@ -20,6 +32,7 @@ export default function OwnerDashboard() {
   const [items, setItems] = useState<Item[]>([]);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [opnames, setOpnames] = useState<StockOpname[]>([]);
+  const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [loading, setLoading] = useState(true);
   
   // CSV Export Filter states
@@ -51,50 +64,16 @@ export default function OwnerDashboard() {
   const loadData = async () => {
     setLoading(true);
     try {
-      if (isSupabaseConfigured) {
-        const { data: iData } = await supabase.from('items').select('*');
-        const { data: sData } = await supabase.from('suppliers').select('id, name');
-        const { data: tData } = await supabase.from('transactions').select('*').order('created_at', { ascending: false });
-        const { data: oData } = await supabase.from('stock_opname').select('*').order('created_at', { ascending: false });
-        const { data: pData } = await supabase.from('profiles').select('id, full_name');
-
-        // Enrich Items
-        const enrichedItems = ((iData || []) as any[]).map((item: any) => ({
-          ...item,
-          supplier_name: ((sData || []) as any[]).find((s: any) => s.id === item.supplier_id)?.name || 'Tanpa Supplier'
-        }));
-        setItems(enrichedItems);
-
-        // Enrich Transactions
-        const enrichedTxs = ((tData || []) as any[]).map((tx: any) => {
-          const itm = ((iData || []) as any[]).find((i: any) => i.id === tx.item_id);
-          return {
-            ...tx,
-            item_name: itm?.name || 'Barang Dihapus',
-            category: itm?.category || '-',
-            unit: itm?.unit || '',
-            actor_name: ((pData || []) as any[]).find((p: any) => p.id === tx.actor_id)?.full_name || 'Staf'
-          };
-        });
-        setTransactions(enrichedTxs);
-
-        // Enrich Opnames
-        const enrichedOps = ((oData || []) as any[]).map((op: any) => {
-          const itm = ((iData || []) as any[]).find((i: any) => i.id === op.item_id);
-          return {
-            ...op,
-            item_name: itm?.name || 'Barang Dihapus',
-            category: itm?.category || '-',
-            unit: itm?.unit || '',
-            barista_name: ((pData || []) as any[]).find((p: any) => p.id === op.barista_id)?.full_name || 'Barista'
-          };
-        });
-        setOpnames(enrichedOps);
-      } else {
-        setItems(mockDb.getMockItems());
-        setTransactions(mockDb.getMockTransactions());
-        setOpnames(mockDb.getMockOpnames());
-      }
+      const [itemsData, txData, opData, suppliersData] = await Promise.all([
+        api.getItems(),
+        api.getTransactions(),
+        api.getOpnames(),
+        api.getSuppliers(),
+      ]);
+      setItems(itemsData);
+      setTransactions(txData);
+      setOpnames(opData);
+      setSuppliers(suppliersData);
     } catch (err) {
       console.error(err);
     } finally {
@@ -215,8 +194,8 @@ export default function OwnerDashboard() {
       {/* Header */}
       <header className="glass-panel sticky top-0 z-40 border-b border-white/5 py-4 px-6 flex justify-between items-center shadow-lg shadow-black/30">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-amber-600/20 border border-amber-500/30 flex items-center justify-center">
-            <TrendingUp className="w-5 h-5 text-amber-400" />
+          <div className="w-10 h-10 rounded-xl bg-white flex items-center justify-center overflow-hidden p-1 shadow-md">
+            <img src="/logo.png" alt="Umatis Logo" className="w-full h-full object-contain" />
           </div>
           <div>
             <h1 className="text-xl font-bold tracking-wider text-slate-200">UMATIS RESTO</h1>
@@ -417,17 +396,38 @@ export default function OwnerDashboard() {
                       <td colSpan={5} className="py-8 text-center text-slate-500 font-medium">Tidak ada bahan bar yang kritis. Kerja bagus!</td>
                     </tr>
                   ) : (
-                    items.filter(item => item.current_stock < item.minimum_stock).map(item => (
-                      <tr key={item.id} className="hover:bg-rose-950/5 transition-colors">
-                        <td className="py-3.5 pl-2 font-semibold text-rose-300">{item.name}</td>
-                        <td className="py-3.5">
-                          <span className="px-2 py-0.5 rounded bg-rose-500/10 border border-rose-500/20 text-rose-400 text-[10px]">{item.category}</span>
-                        </td>
-                        <td className="py-3.5 text-right font-black text-rose-400">{item.current_stock.toLocaleString()} {item.unit}</td>
-                        <td className="py-3.5 text-right text-slate-400">{item.minimum_stock.toLocaleString()} {item.unit}</td>
-                        <td className="py-3.5 pl-4 text-slate-400 italic">{item.supplier_name}</td>
-                      </tr>
-                    ))
+                    items.filter(item => item.current_stock < item.minimum_stock).map(item => {
+                      const supplierObj = suppliers.find(s => s.id === item.supplier_id);
+                      const phone = supplierObj?.phone;
+                      return (
+                        <tr key={item.id} className="hover:bg-rose-950/5 transition-colors">
+                          <td className="py-3.5 pl-2 font-semibold text-rose-300">{item.name}</td>
+                          <td className="py-3.5">
+                            <span className="px-2 py-0.5 rounded bg-rose-500/10 border border-rose-500/20 text-rose-400 text-[10px]">{item.category}</span>
+                          </td>
+                          <td className="py-3.5 text-right font-black text-rose-400">{item.current_stock.toLocaleString()} {item.unit}</td>
+                          <td className="py-3.5 text-right text-slate-400">{item.minimum_stock.toLocaleString()} {item.unit}</td>
+                          <td className="py-3.5 pl-4 text-slate-400 italic">
+                            <div className="flex items-center gap-1.5 justify-start">
+                              <span>{item.supplier_name}</span>
+                              {phone && (
+                                <a 
+                                  href={getWhatsAppUrl(phone, item.supplier_name || 'Supplier', item.name)}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="inline-flex items-center justify-center w-5 h-5 rounded bg-[#25D366] hover:bg-[#20ba5a] text-white transition-colors"
+                                  title={`Hubungi WhatsApp ${item.supplier_name}`}
+                                >
+                                  <svg className="w-3 h-3 fill-current" viewBox="0 0 24 24">
+                                    <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946C.06 5.348 5.397.01 12.008.01c3.202.001 6.212 1.246 8.477 3.517 2.266 2.27 3.507 5.28 3.505 8.484-.004 6.657-5.34 11.997-11.953 11.997-2.005-.001-3.973-.502-5.724-1.455L0 24zm6.09-3.985l.41.243c1.58.939 3.502 1.435 5.463 1.436 5.864 0 10.635-4.746 10.638-10.58.002-2.83-1.096-5.49-3.09-7.487-1.993-1.997-4.65-3.097-7.478-3.097-5.867 0-10.637 4.747-10.64 10.584-.001 1.942.508 3.841 1.472 5.51l.269.467-1.01 3.693 3.796-.99zM17.15 15.64c-.3-.15-1.777-.872-2.031-.967-.255-.095-.441-.142-.627.142-.186.284-.72.903-.882 1.093-.162.19-.325.213-.625.063-.3-.15-1.267-.467-2.414-1.488-.893-.794-1.496-1.777-1.671-2.078-.176-.3-.019-.462.13-.611.135-.133.3-.349.45-.523.15-.174.2-.299.3-.499.1-.2.05-.375-.025-.524-.075-.15-.625-1.493-.856-2.057-.225-.548-.473-.474-.627-.482-.15-.008-.325-.01-.5-.01s-.458.067-.698.327c-.24.26-1.066 1.037-1.066 2.530-1.493 1.092 2.932 1.241 3.13.15.198 2.15 3.266 5.208 4.582.727.313 1.296.5 1.738.64.73.232 1.396.199 1.921.121.585-.087 1.778-.723 2.031-1.386.254-.664.254-1.233.178-1.386-.076-.153-.277-.247-.577-.397z"/>
+                                  </svg>
+                                </a>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })
                   )}
                 </tbody>
               </table>
