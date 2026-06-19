@@ -210,141 +210,147 @@ export default function AdminDashboard() {
   });
 
   return (
-    <div className="min-h-screen flex flex-col bg-forest-dark text-slate-100 font-sans pb-12">
-      <MockWarning />
+    <div className="min-h-screen flex flex-col md:flex-row bg-forest-dark text-slate-100 font-sans">
+      {/* Left Sidebar */}
+      <aside className="w-full md:w-64 bg-slate-950/20 backdrop-blur-md border-b md:border-b-0 md:border-r border-slate-800/40 flex flex-col justify-between p-6 shrink-0 md:sticky md:top-0 md:h-screen overflow-y-auto">
+        <div className="space-y-6">
+          {/* Logo Brand */}
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-white flex items-center justify-center overflow-hidden p-1 shadow-md">
+              <img src="/logo.png" alt="Umatis Logo" className="w-full h-full object-contain" />
+            </div>
+            <div>
+              <h1 className="text-base font-extrabold tracking-wider text-slate-200 uppercase">UMATIS RESTO</h1>
+              <p className="text-[10px] text-emerald-400 font-bold uppercase tracking-widest">Admin Workspace</p>
+            </div>
+          </div>
 
-      {/* Header */}
-      <header className="glass-panel sticky top-0 z-40 border-b border-white/5 py-4 px-6 flex justify-between items-center shadow-lg shadow-black/30">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-white flex items-center justify-center overflow-hidden p-1 shadow-md">
-            <img src="/logo.png" alt="Umatis Logo" className="w-full h-full object-contain" />
+          {/* User Profile */}
+          <div className="bg-slate-900/40 p-3.5 rounded-xl border border-slate-800/40">
+            <p className="text-xs font-semibold text-slate-200">{currentUser?.full_name || 'Admin'}</p>
+            <p className="text-[10px] text-slate-400 italic capitalize">{currentUser?.role}</p>
           </div>
-          <div>
-            <h1 className="text-xl font-bold tracking-wider text-slate-200">UMATIS RESTO</h1>
-            <p className="text-[10px] text-emerald-400 font-bold uppercase tracking-widest">Admin Workspace</p>
-          </div>
+
+          {/* Tab Selection */}
+          <nav className="flex flex-col gap-1.5 mt-6">
+            <button 
+              onClick={() => { setActiveTab('items'); setSearchQuery(''); }}
+              className={`px-4 py-3 text-xs font-bold uppercase tracking-wider rounded-xl transition-all flex items-center gap-2.5 cursor-pointer w-full text-left ${
+                activeTab === 'items' 
+                  ? 'bg-emerald-600/20 text-emerald-400 border border-emerald-500/30 font-extrabold' 
+                  : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900/30'
+              }`}
+            >
+              <Package className="w-4 h-4" />
+              <span>Bahan Bar ({items.length})</span>
+            </button>
+            
+            <button 
+              onClick={() => { setActiveTab('suppliers'); setSearchQuery(''); }}
+              className={`px-4 py-3 text-xs font-bold uppercase tracking-wider rounded-xl transition-all flex items-center gap-2.5 cursor-pointer w-full text-left ${
+                activeTab === 'suppliers' 
+                  ? 'bg-emerald-600/20 text-emerald-400 border border-emerald-500/30 font-extrabold' 
+                  : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900/30'
+              }`}
+            >
+              <Truck className="w-4 h-4" />
+              <span>Supplier ({suppliers.length})</span>
+            </button>
+
+            <button 
+              onClick={() => { setActiveTab('transactions'); setSearchQuery(''); }}
+              className={`px-4 py-3 text-xs font-bold uppercase tracking-wider rounded-xl transition-all flex items-center gap-2.5 cursor-pointer w-full text-left ${
+                activeTab === 'transactions' 
+                  ? 'bg-emerald-600/20 text-emerald-400 border border-emerald-500/30 font-extrabold' 
+                  : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900/30'
+              }`}
+            >
+              <ShoppingCart className="w-4 h-4" />
+              <span>Transaksi ({transactions.length})</span>
+            </button>
+
+            <button 
+              onClick={() => { setActiveTab('users'); setSearchQuery(''); }}
+              className={`px-4 py-3 text-xs font-bold uppercase tracking-wider rounded-xl transition-all flex items-center gap-2.5 cursor-pointer w-full text-left ${
+                activeTab === 'users' 
+                  ? 'bg-emerald-600/20 text-emerald-400 border border-emerald-500/30 font-extrabold' 
+                  : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900/30'
+              }`}
+            >
+              <Users className="w-4 h-4" />
+              <span>Pengguna ({profiles.length})</span>
+            </button>
+          </nav>
         </div>
 
-        <div className="flex items-center gap-4">
-          <div className="hidden sm:block text-right">
-            <p className="text-sm font-semibold text-slate-200">{currentUser?.full_name || 'Admin'}</p>
-            <p className="text-xs text-slate-400 italic capitalize">{currentUser?.role}</p>
-          </div>
+        {/* Logout at bottom */}
+        <div className="border-t border-slate-800/60 pt-4 mt-6">
           <button 
             onClick={handleLogout}
-            className="flex items-center gap-2 bg-slate-900/50 hover:bg-rose-950/40 border border-slate-800 hover:border-rose-900/40 text-slate-400 hover:text-rose-400 text-xs px-3 py-2 rounded-xl transition-all cursor-pointer font-medium"
+            className="flex items-center justify-center gap-2 w-full bg-slate-900/50 hover:bg-rose-950/40 border border-slate-800 hover:border-rose-900/40 text-slate-400 hover:text-rose-400 text-xs px-3 py-2.5 rounded-xl transition-all cursor-pointer font-bold uppercase tracking-wider"
           >
             <LogOut className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">Keluar</span>
+            <span>Keluar</span>
           </button>
         </div>
-      </header>
+      </aside>
 
-      {/* Main Grid */}
-      <main className="max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 mt-8 flex-1">
+      {/* Main Content Area */}
+      <div className="flex-1 flex flex-col min-h-screen overflow-x-hidden">
+        <MockWarning />
         
-        {/* Metrik Cards */}
-        <section className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-          <div className="glass-panel p-5 rounded-2xl border border-white/5 relative overflow-hidden flex items-center justify-between">
-            <div>
-              <p className="text-xs text-slate-400 font-bold uppercase tracking-wider mb-1">Total Bahan</p>
-              <h3 className="text-2xl font-black text-slate-100">{totalItems}</h3>
+        <main className="p-4 sm:p-6 lg:p-8 space-y-6 flex flex-col flex-1">
+          {/* Metrik Cards */}
+          <section className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="glass-panel p-5 rounded-2xl border border-white/5 relative overflow-hidden flex items-center justify-between">
+              <div>
+                <p className="text-xs text-slate-400 font-bold uppercase tracking-wider mb-1">Total Bahan</p>
+                <h3 className="text-2xl font-black text-slate-100">{totalItems}</h3>
+              </div>
+              <div className="w-10 h-10 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400">
+                <Package className="w-5 h-5" />
+              </div>
             </div>
-            <div className="w-10 h-10 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400">
-              <Package className="w-5 h-5" />
-            </div>
-          </div>
 
-          <div className={`glass-panel p-5 rounded-2xl border relative overflow-hidden flex items-center justify-between transition-all ${
-            lowStockItems.length > 0 ? 'border-amber-500/30 bg-amber-500/5' : 'border-white/5'
-          }`}>
-            <div>
-              <p className="text-xs text-slate-400 font-bold uppercase tracking-wider mb-1">Stok Tipis</p>
-              <h3 className={`text-2xl font-black ${
-                lowStockItems.length > 0 ? 'text-amber-400 animate-pulse' : 'text-slate-100'
-              }`}>{lowStockItems.length}</h3>
-            </div>
-            <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
-              lowStockItems.length > 0 ? 'bg-amber-500/10 border border-amber-500/20 text-amber-400' : 'bg-slate-500/10 border border-slate-500/20 text-slate-400'
+            <div className={`glass-panel p-5 rounded-2xl border relative overflow-hidden flex items-center justify-between transition-all ${
+              lowStockItems.length > 0 ? 'border-amber-500/30 bg-amber-500/5' : 'border-white/5'
             }`}>
-              <AlertTriangle className="w-5 h-5" />
+              <div>
+                <p className="text-xs text-slate-400 font-bold uppercase tracking-wider mb-1">Stok Tipis</p>
+                <h3 className={`text-2xl font-black ${
+                  lowStockItems.length > 0 ? 'text-amber-400 animate-pulse' : 'text-slate-100'
+                }`}>{lowStockItems.length}</h3>
+              </div>
+              <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
+                lowStockItems.length > 0 ? 'bg-amber-500/10 border border-amber-500/20 text-amber-400' : 'bg-slate-500/10 border border-slate-500/20 text-slate-400'
+              }`}>
+                <AlertTriangle className="w-5 h-5" />
+              </div>
             </div>
-          </div>
 
-          <div className="glass-panel p-5 rounded-2xl border border-white/5 relative overflow-hidden flex items-center justify-between">
-            <div>
-              <p className="text-xs text-slate-400 font-bold uppercase tracking-wider mb-1">Supplier Aktif</p>
-              <h3 className="text-2xl font-black text-slate-100">{totalSuppliers}</h3>
+            <div className="glass-panel p-5 rounded-2xl border border-white/5 relative overflow-hidden flex items-center justify-between">
+              <div>
+                <p className="text-xs text-slate-400 font-bold uppercase tracking-wider mb-1">Supplier Utama</p>
+                <h3 className="text-2xl font-black text-slate-100">{totalSuppliers}</h3>
+              </div>
+              <div className="w-10 h-10 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400">
+                <Truck className="w-5 h-5" />
+              </div>
             </div>
-            <div className="w-10 h-10 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400">
-              <Truck className="w-5 h-5" />
+
+            <div className="glass-panel p-5 rounded-2xl border border-white/5 relative overflow-hidden flex items-center justify-between">
+              <div>
+                <p className="text-xs text-slate-400 font-bold uppercase tracking-wider mb-1">Mutasi Hari Ini</p>
+                <h3 className="text-2xl font-black text-slate-100">{transactionsToday}</h3>
+              </div>
+              <div className="w-10 h-10 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400">
+                <ShoppingCart className="w-5 h-5" />
+              </div>
             </div>
-          </div>
+          </section>
 
-          <div className="glass-panel p-5 rounded-2xl border border-white/5 relative overflow-hidden flex items-center justify-between">
-            <div>
-              <p className="text-xs text-slate-400 font-bold uppercase tracking-wider mb-1">Mutasi Hari Ini</p>
-              <h3 className="text-2xl font-black text-slate-100">{transactionsToday}</h3>
-            </div>
-            <div className="w-10 h-10 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400">
-              <ShoppingCart className="w-5 h-5" />
-            </div>
-          </div>
-        </section>
-
-        {/* Tab Buttons */}
-        <section className="flex gap-2 border-b border-slate-800/80 mb-6 overflow-x-auto no-scrollbar py-1">
-          <button 
-            onClick={() => { setActiveTab('items'); setSearchQuery(''); }}
-            className={`px-4 py-2.5 text-xs font-bold uppercase tracking-wider rounded-lg transition-all flex items-center gap-2 cursor-pointer ${
-              activeTab === 'items' 
-                ? 'bg-emerald-600/20 text-emerald-400 border border-emerald-500/30' 
-                : 'text-slate-400 hover:text-slate-200'
-            }`}
-          >
-            <Package className="w-4 h-4" />
-            Bahan Bar ({items.length})
-          </button>
-          
-          <button 
-            onClick={() => { setActiveTab('suppliers'); setSearchQuery(''); }}
-            className={`px-4 py-2.5 text-xs font-bold uppercase tracking-wider rounded-lg transition-all flex items-center gap-2 cursor-pointer ${
-              activeTab === 'suppliers' 
-                ? 'bg-emerald-600/20 text-emerald-400 border border-emerald-500/30' 
-                : 'text-slate-400 hover:text-slate-200'
-            }`}
-          >
-            <Truck className="w-4 h-4" />
-            Supplier ({suppliers.length})
-          </button>
-
-          <button 
-            onClick={() => { setActiveTab('transactions'); setSearchQuery(''); }}
-            className={`px-4 py-2.5 text-xs font-bold uppercase tracking-wider rounded-lg transition-all flex items-center gap-2 cursor-pointer ${
-              activeTab === 'transactions' 
-                ? 'bg-emerald-600/20 text-emerald-400 border border-emerald-500/30' 
-                : 'text-slate-400 hover:text-slate-200'
-            }`}
-          >
-            <ShoppingCart className="w-4 h-4" />
-            Riwayat Transaksi ({transactions.length})
-          </button>
-
-          <button 
-            onClick={() => { setActiveTab('users'); setSearchQuery(''); }}
-            className={`px-4 py-2.5 text-xs font-bold uppercase tracking-wider rounded-lg transition-all flex items-center gap-2 cursor-pointer ${
-              activeTab === 'users' 
-                ? 'bg-emerald-600/20 text-emerald-400 border border-emerald-500/30' 
-                : 'text-slate-400 hover:text-slate-200'
-            }`}
-          >
-            <Users className="w-4 h-4" />
-            Daftar Pengguna ({profiles.length})
-          </button>
-        </section>
-
-        {/* Tab Contents */}
-        <section className="glass-panel rounded-2xl p-6 border border-white/5 relative min-h-[400px]">
+          {/* Tab Contents */}
+          <section className="glass-panel rounded-2xl p-6 border border-white/5 relative min-h-[400px]">
           
           {loading ? (
             <div className="absolute inset-0 flex flex-col items-center justify-center bg-forest-dark/40 backdrop-blur-sm rounded-2xl">
@@ -706,6 +712,7 @@ export default function AdminDashboard() {
 
         </section>
       </main>
+    </div>
 
       {/* ============ MODAL: ITEM CRUD ============ */}
       {itemModalOpen && currentItem && (
