@@ -86,20 +86,49 @@ export default function OwnerDashboard() {
     router.push('/');
   };
 
-  // CSV Exporters
-  const downloadCSV = (filename: string, headers: string[], rows: string[][]) => {
-    // Escape csv cells correctly
-    const csvContent = [
-      headers.join(','),
-      ...rows.map(row => 
-        row.map(cell => {
-          const clean = cell ? cell.toString().replace(/"/g, '""') : '';
-          return clean.includes(',') || clean.includes('\n') || clean.includes('"') ? `"${clean}"` : clean;
-        }).join(',')
-      )
-    ].join('\n');
+  // Excel Exporters
+  const downloadExcel = (filename: string, title: string, headers: string[], rows: string[][]) => {
+    const today = new Date().toLocaleString('id-ID', { dateStyle: 'long', timeStyle: 'short' });
+    
+    let html = `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">`;
+    html += `<head><meta charset="utf-8">`;
+    html += `<!--[if gte mso 9]><xml><x:ExcelWorkbook><x:ExcelWorksheets><x:ExcelWorksheet><x:Name>Sheet1</x:Name><x:WorksheetOptions><x:DisplayGridlines/></x:WorksheetOptions></x:ExcelWorksheet></x:ExcelWorksheets></x:ExcelWorkbook></xml><![endif]-->`;
+    html += `<style>`;
+    html += `  table { border-collapse: collapse; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; font-size: 10pt; }`;
+    html += `  th { background-color: #b45309; color: #ffffff; font-weight: bold; border: 1px solid #cbd5e1; padding: 8px 12px; text-align: center; }`;
+    html += `  td { border: 1px solid #cbd5e1; padding: 8px 12px; }`;
+    html += `  .title { font-size: 14pt; font-weight: bold; color: #78350f; text-align: center; }`;
+    html += `  .subtitle { font-size: 9pt; color: #64748b; text-align: center; }`;
+    html += `  .text-right { text-align: right; }`;
+    html += `</style></head><body>`;
+    
+    html += `<table>`;
+    html += `  <tr><td colspan="${headers.length}" class="title">${title}</td></tr>`;
+    html += `  <tr><td colspan="${headers.length}" class="subtitle">Dicetak pada: ${today}</td></tr>`;
+    html += `  <tr><td colspan="${headers.length}"></td></tr>`;
+    
+    // Headers
+    html += `  <thead><tr>`;
+    headers.forEach(h => {
+      html += `    <th>${h}</th>`;
+    });
+    html += `  </tr></thead>`;
+    
+    // Rows
+    html += `  <tbody>`;
+    rows.forEach(row => {
+      html += `    <tr>`;
+      row.forEach(cell => {
+        const cleanVal = cell.replace(/[^0-9.-]/g, '');
+        const isNum = !isNaN(Number(cleanVal)) && cleanVal.trim() !== '' && !cell.includes(':') && !cell.includes('-');
+        const alignmentClass = isNum ? 'class="text-right"' : '';
+        html += `      <td ${alignmentClass}>${cell || '-'}</td>`;
+      });
+      html += `    </tr>`;
+    });
+    html += `  </tbody></table></body></html>`;
 
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const blob = new Blob([html], { type: 'application/vnd.ms-excel;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.setAttribute('href', url);
@@ -121,7 +150,7 @@ export default function OwnerDashboard() {
       item.unit,
       item.supplier_name || 'Tanpa Supplier'
     ]);
-    downloadCSV(`Umatis_Master_Stok_${new Date().toISOString().split('T')[0]}.csv`, headers, rows);
+    downloadExcel(`Umatis_Master_Stok_${new Date().toISOString().split('T')[0]}.xls`, 'LAPORAN DATA MASTER STOK BARANG', headers, rows);
   };
 
   const exportTransactions = () => {
@@ -145,7 +174,7 @@ export default function OwnerDashboard() {
       t.actor_name || 'Sistem',
       t.notes || ''
     ]);
-    downloadCSV(`Umatis_Mutasi_Stok_${startDate}_to_${endDate}.csv`, headers, rows);
+    downloadExcel(`Umatis_Mutasi_Stok_${startDate}_to_${endDate}.xls`, 'LAPORAN DATA MUTASI STOK BARANG', headers, rows);
   };
 
   const exportOpnameDiscrepancies = () => {
@@ -171,7 +200,7 @@ export default function OwnerDashboard() {
       o.barista_name || 'Barista',
       o.notes || ''
     ]);
-    downloadCSV(`Umatis_Selisih_Opname_${startDate}_to_${endDate}.csv`, headers, rows);
+    downloadExcel(`Umatis_Selisih_Opname_${startDate}_to_${endDate}.xls`, 'LAPORAN DATA SELISIH AUDIT STOCK OPNAME', headers, rows);
   };
 
   // Stats logic
@@ -307,7 +336,7 @@ export default function OwnerDashboard() {
           </div>
         </section>
 
-        {/* Row 2: CSV Export Center & Critical Stock Tracker */}
+        {/* Row 2: Excel Export Center & Critical Stock Tracker */}
         <section className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           
           {/* Card: Export Center */}
@@ -315,9 +344,9 @@ export default function OwnerDashboard() {
             <div>
               <h3 className="text-base font-bold text-slate-200 flex items-center gap-2">
                 <Download className="w-4 h-4 text-emerald-400" />
-                Pusat Ekspor Laporan (CSV)
+                Pusat Ekspor Laporan (Excel)
               </h3>
-              <p className="text-xs text-slate-400 mt-1 mb-4">Unduh data transaksi, master stok, atau opname dalam bentuk file CSV bersih yang siap diolah.</p>
+              <p className="text-xs text-slate-400 mt-1 mb-4">Unduh data transaksi, master stok, atau opname dalam bentuk file Excel (.xls) berformat tabel rapi.</p>
 
               {/* Date Filters */}
               <div className="space-y-3 bg-slate-950/30 p-3 rounded-xl border border-slate-800/40 mb-5">
