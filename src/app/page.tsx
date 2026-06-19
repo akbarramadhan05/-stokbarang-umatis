@@ -104,15 +104,17 @@ export default function Login() {
                 <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">
                   Alamat Email
                 </label>
-                <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-slate-950/20 flex items-center justify-center border border-slate-800/20 text-slate-500 shrink-0">
+                    <Mail className="w-5 h-5" />
+                  </div>
                   <input
                     type="email"
                     required
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="nama@umatis.com"
-                    className="w-full pl-10 glass-input text-sm"
+                    className="flex-1 glass-input text-sm"
                   />
                 </div>
               </div>
@@ -121,15 +123,17 @@ export default function Login() {
                 <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">
                   Kata Sandi
                 </label>
-                <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-slate-950/20 flex items-center justify-center border border-slate-800/20 text-slate-500 shrink-0">
+                    <Lock className="w-5 h-5" />
+                  </div>
                   <input
                     type="password"
                     required
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="••••••••"
-                    className="w-full pl-10 glass-input text-sm"
+                    className="flex-1 glass-input text-sm"
                   />
                 </div>
               </div>
@@ -153,7 +157,7 @@ export default function Login() {
             {/* Quick Demo Helper */}
             <div className="mt-8 border-t border-slate-800/60 pt-6">
               <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-3 text-center">
-                Demo Akun Cepat (Klik untuk isi)
+                Silakan login sesuai profesi Anda
               </p>
               <div className="grid grid-cols-3 gap-2">
                 <button
